@@ -1,3 +1,4 @@
+import { parseAgentMessage } from "./agent-messages/index.js";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -4133,7 +4134,12 @@ describe("send_agent_prompt MCP tool", () => {
         agentId: child.id,
         prompt: "Follow up",
       });
-      await vi.waitFor(() => expect(childSession.prompts).toEqual(["Follow up"]));
+      await vi.waitFor(() => expect(childSession.prompts).toHaveLength(1));
+      expect(parseAgentMessage(childSession.prompts[0])).toEqual({
+        id: expect.any(String),
+        source: { kind: "agent-message", agentId: parent.id },
+        text: "Follow up",
+      });
       acknowledgeTurnStart();
       const response = await pending;
 

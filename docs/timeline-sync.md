@@ -238,10 +238,17 @@ foreground control ownership remains a separate daemon concern. Cancellation req
 with that record rather than in a React component, so an old request cannot clear a newer one. Submissions
 remain a separate pre-turn registry and retire on canonical acknowledgement.
 
-Canonical turns and visible responses are different boundaries. System-injected prompts are absent from
-the Paseo timeline, so one visible response can span several canonical turns without a user message
-between them. Layout and copy group that response together; lifecycle, timing, tool sequences, and exact
+Canonical turns and visible responses are different boundaries. Agent-originated prompts and lifecycle
+notifications project into tool rows, so they do not create a human-message boundary. Legacy system
+prompts, including schedule injections, remain hidden. One visible response can span several canonical
+turns; layout and copy group that response together while lifecycle, timing, tool sequences, and exact
 fork positions retain the canonical `turnId` boundaries.
+
+Agent-message XML belongs to the daemon's `agent/agent-messages` boundary. Prompt delivery encodes
+provenance; acceptance, provider echoes, import, and replay share its projection. The delivery ID is
+also the projected call ID, so a provider echo cannot create a second row. Keep the existing
+`tool_call` / `plain_text` wire shape: older clients must display these messages without learning a
+new timeline variant. Sender IDs are opaque and do not imply local ownership or authorization.
 
 The compatibility boundary for older daemons is snapshot normalization: running/idle status becomes an
 anonymous active turn or idle state once, and downstream code consumes the same activity shape. The app
