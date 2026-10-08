@@ -466,6 +466,7 @@ async function sendInitialPrompt(
       return { started: false, liveSnapshot: snapshot };
     }
     const liveSnapshot = await startCreatedAgentInitialPrompt({
+      agentStorage: dependencies.agentStorage,
       agentManager: dependencies.agentManager,
       agentId: snapshot.id,
       snapshot,

@@ -9,10 +9,15 @@ import type {
 
 const agentIdSchema = z.string().min(1);
 const sourceSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("agent-message"), agentId: agentIdSchema }),
+  z.object({
+    kind: z.literal("agent-message"),
+    agentId: agentIdSchema,
+    title: z.string().min(1).optional(),
+  }),
   z.object({
     kind: z.literal("agent-notification"),
     agentId: agentIdSchema,
+    title: z.string().min(1).optional(),
     event: z.enum(["finished", "errored", "permission-required", "closed"]),
   }),
 ]);
@@ -64,8 +69,9 @@ export function formatAgentMessage(message: AgentMessage): string {
   const attributes = source
     ? `kind="${source.kind}" source-agent-id="${escapeXml(source.agentId)}"`
     : 'kind="user-message"';
+  const title = source?.title ? ` source-agent-title="${escapeXml(source.title)}"` : "";
   const event = source?.kind === "agent-notification" ? ` event="${source.event}"` : "";
-  return `<paseo-system version="1" ${attributes} message-id="${escapeXml(message.id)}"${event}>\n${escapeXml(message.text)}\n</paseo-system>`;
+  return `<paseo-system version="1" ${attributes} message-id="${escapeXml(message.id)}"${title}${event}>\n${escapeXml(message.text)}\n</paseo-system>`;
 }
 
 export function parseAgentMessage(text: string): AgentMessage | null {
@@ -91,6 +97,7 @@ export function parseAgentMessage(text: string): AgentMessage | null {
     kind: attributes.get("kind"),
     agentId: attributes.get("source-agent-id"),
     event: attributes.get("event"),
+    title: attributes.get("source-agent-title"),
   });
   if (!source.success) return null;
   return { id, source: source.data, text: body };
@@ -137,13 +144,6 @@ export function prepareAgentMessage(
   };
 }
 
-const notificationLabels = {
-  finished: "Agent finished",
-  errored: "Agent errored",
-  "permission-required": "Agent needs permission",
-  closed: "Agent closed",
-};
-
 /** The same projection owns provider echoes, acceptance, import, and replay. */
 export function projectAgentMessage(item: AgentTimelineItem): AgentTimelineItem | null {
   if (item.type !== "user_message") return item;
@@ -157,26 +157,21 @@ export function projectAgentMessage(item: AgentTimelineItem): AgentTimelineItem 
   if (!source) {
     return { ...item, text: message.text, clientMessageId: message.id };
   }
-  const label =
-    source.kind === "agent-message" ? "Message from agent" : notificationLabels[source.event];
   return {
     type: "tool_call",
     callId: `paseo-agent-message:${message.id}`,
-    name: source.kind === "agent-message" ? "paseo_agent_message" : "paseo_agent_notification",
+    agentMessage: {
+      event: source.kind === "agent-message" ? "message" : source.event,
+      sender: { id: source.agentId, ...(source.title ? { title: source.title } : {}) },
+      text: message.text,
+    },
+    // COMPAT(agentMessageToolEnvelope): added in v0.11.1; remove after 2027-04-08
+    // once clients can accept a dedicated timeline variant. Older clients still
+    // parse this existing shape and can expand the delivered body.
+    name: "agent_message",
     status: "completed",
     error: null,
-    detail: {
-      type: "plain_text",
-      label,
-      icon: "bot",
-      text: `From agent: ${source.agentId}\n\n${message.text}`,
-    },
-    metadata: {
-      origin: "agent-message",
-      sourceAgentId: source.agentId,
-      kind: source.kind,
-      ...(source.kind === "agent-notification" ? { event: source.event } : {}),
-    },
+    detail: { type: "plain_text", text: message.text, icon: "bot" },
   };
 }
 

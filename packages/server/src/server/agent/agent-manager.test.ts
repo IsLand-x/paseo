@@ -11496,13 +11496,17 @@ test.each(["live", "history"])(
       expect.objectContaining({
         type: "tool_call",
         callId: "paseo-agent-message:delivery-1",
-        name: "paseo_agent_message",
+        agentMessage: {
+          event: "message",
+          sender: { id: "remote::sender" },
+          text: "Review <changes> & report back.",
+        },
+        name: "agent_message",
         status: "completed",
         detail: {
           type: "plain_text",
-          label: "Message from agent",
           icon: "bot",
-          text: "From agent: remote::sender\n\nReview <changes> & report back.",
+          text: "Review <changes> & report back.",
         },
       }),
     );

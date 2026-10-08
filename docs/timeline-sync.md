@@ -246,9 +246,16 @@ fork positions retain the canonical `turnId` boundaries.
 
 Agent-message XML belongs to the daemon's `agent/agent-messages` boundary. Prompt delivery encodes
 provenance; acceptance, provider echoes, import, and replay share its projection. The delivery ID is
-also the projected call ID, so a provider echo cannot create a second row. Keep the existing
-`tool_call` / `plain_text` wire shape: older clients must display these messages without learning a
-new timeline variant. Sender IDs are opaque and do not imply local ownership or authorization.
+also the projected call ID, so a provider echo cannot create a second row. Sender IDs are opaque and
+do not imply local ownership or authorization. Capture the sender title at delivery: archived or
+removed senders must remain understandable without a live directory lookup.
+
+The optional `agentMessage` payload carries event, sender, and delivered text. Shared client
+presentation (`protocol/agent-message-display`) owns its heading and expanded details. The daemon
+must not construct UI labels or prepend sender labels to the semantic message body. The existing
+`tool_call` / `plain_text` envelope is a compatibility adapter: older clients still parse the row and
+expand its body. New clients use the typed payload, never infer the event from a tool name or parse
+XML. Stream reduction and disk-cache serialization preserve the payload without rendering it.
 
 The compatibility boundary for older daemons is snapshot normalization: running/idle status becomes an
 anonymous active turn or idle state once, and downstream code consumes the same activity shape. The app

@@ -1,3 +1,4 @@
+import { AgentMessageSchema } from "./agent-message.js";
 import { PluginRegistryIdentitySchema } from "./plugin-registry.js";
 import { AgentProfileSchema, AgentSkillSelectionSchema } from "./agent-profile.js";
 export {
@@ -625,6 +626,7 @@ const ToolCallDetailPayloadSchema: z.ZodType<ToolCallDetail, unknown> = z.discri
 );
 
 const ToolCallBasePayloadSchema = z.object({
+  agentMessage: AgentMessageSchema.optional(),
   type: z.literal("tool_call"),
   callId: z.string(),
   name: z.string(),

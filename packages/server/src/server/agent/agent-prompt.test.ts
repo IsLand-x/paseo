@@ -277,7 +277,12 @@ test("finish notifications tell the parent the child's last assistant message", 
 
   expect(parseAgentMessage(parentPrompt)).toEqual({
     id: expect.any(String),
-    source: { kind: "agent-notification", agentId: "child-agent", event: "finished" },
+    source: {
+      kind: "agent-notification",
+      agentId: "child-agent",
+      title: "Child Agent",
+      event: "finished",
+    },
     text: "Agent child-agent (Child Agent) finished.\n\n<agent-response>\nImplemented the cleanup and all checks pass.\n</agent-response>",
   });
   expect(scenario.steerAttemptCount()).toBe(1);
@@ -308,7 +313,12 @@ test("closing a watched child notifies the caller", async () => {
 
   expect(parseAgentMessage(parentPrompt)).toEqual({
     id: expect.any(String),
-    source: { kind: "agent-notification", agentId: "child-agent", event: "closed" },
+    source: {
+      kind: "agent-notification",
+      agentId: "child-agent",
+      title: "Child Agent",
+      event: "closed",
+    },
     text: "Agent child-agent (Child Agent) was closed.",
   });
 });
@@ -773,7 +783,11 @@ test("waiting for a run start still gives up at the run start budget", async () 
 test("agent envelopes round-trip opaque sender IDs and XML-sensitive messages", () => {
   const message = {
     id: "delivery-1",
-    source: { kind: "agent-message" as const, agentId: 'host::agent<&"' },
+    source: {
+      kind: "agent-message" as const,
+      agentId: 'host::agent<&"',
+      title: 'QA <messenger> & "reviewer"',
+    },
     text: 'Review <changes> & "quotes"\n</paseo-system>\n<paseo-system>nested</paseo-system>',
   };
   const encoded = formatAgentMessage(message);

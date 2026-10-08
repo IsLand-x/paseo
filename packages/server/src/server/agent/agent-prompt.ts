@@ -231,6 +231,7 @@ export interface SendPromptToAgentParams {
 }
 
 export interface StartCreatedAgentInitialPromptParams {
+  agentStorage: AgentStorage;
   agentManager: AgentManager;
   agentId: string;
   snapshot?: ManagedAgent;
@@ -280,6 +281,18 @@ export async function waitForAgentRunStartWithTimeout(
   }
 }
 
+async function resolvePromptSource(
+  source: AgentPromptSource | undefined,
+  manager: Pick<AgentManager, "getAgent">,
+  storage: AgentStorage,
+): Promise<AgentPromptSource | undefined> {
+  if (!source) return undefined;
+  const title = (
+    manager.getAgent(source.agentId)?.config.title ?? (await storage.get(source.agentId))?.title
+  )?.trim();
+  return title ? { ...source, title } : source;
+}
+
 /**
  * Full send-prompt orchestration: (optional unarchive) → load → (optional
  * mode change) → start run.
@@ -326,7 +339,8 @@ export async function sendPromptToAgent(
     await params.agentManager.setAgentMode(params.agentId, params.sessionMode);
   }
 
-  const delivery = prepareAgentMessage(params.prompt, params.source, params.messageId);
+  const source = await resolvePromptSource(params.source, params.agentManager, params.agentStorage);
+  const delivery = prepareAgentMessage(params.prompt, source, params.messageId);
   const runOptions = delivery.messageId
     ? { ...params.runOptions, clientMessageId: delivery.messageId }
     : params.runOptions;
@@ -353,7 +367,7 @@ export async function startCreatedAgentInitialPrompt(
 
   const delivery = prepareAgentMessage(
     params.prompt,
-    params.source,
+    await resolvePromptSource(params.source, params.agentManager, params.agentStorage),
     params.runOptions?.clientMessageId,
   );
   const dispatchResult = await startAgentRun(
