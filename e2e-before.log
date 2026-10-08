@@ -1,0 +1,91 @@
+[metro] Starting project at /tmp/paseo-upstream-navigation/packages/app
+[metro] Using src/app as the root directory for Expo Router.
+[metro] Experimental Expo Autolinking module resolver is enabled.
+[metro] React Compiler enabled
+[metro] Starting Metro Bundler
+[metro] Waiting on http://localhost:35583
+[metro] Logs for your project will appear below.
+[metro] Web packages/app/index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[metro] | (node:1331203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[metro] | (Use `node --trace-warnings ...` to show where the warning was created)
+[metro] Web packages/app/index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 95.2% (5109/5237)
+[metro] Web Bundled 4781ms packages/app/index.ts (5433 modules)
+[e2e] Metro warmed on port 35583
+
+Running 1 test using 1 worker
+
+(node:1331444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1331444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[e2e] Worker 0 daemon started on port 26209, home: /tmp/paseo-e2e-worker-0-HEHeWW
+[metro] Web packages/app/index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[metro] Web Bundled 325ms packages/app/index.ts (1 module)
+[metro] Web packages/app/src/attachments/web/indexeddb-attachment-store.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[metro]  LOG  [web] Logs will appear in the browser console
+[metro] Web Bundled 105ms packages/app/src/attachments/web/indexeddb-attachment-store.ts (1 module)
+[metro] Web Bundled 302ms packages/app/index.ts (1 module)
+[metro] Web packages/app/src/attachments/web/indexeddb-attachment-store.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
+[metro] Web Bundled 6ms packages/app/src/attachments/web/indexeddb-attachment-store.ts (1 module)
+[metro]  LOG  [web] Logs will appear in the browser console
+[e2e] Worker 0 daemon stopped
+  ✘  1 [browser] › e2e/browser/plugin-archived-agent-navigation.spec.ts:20:5 › Explorer opens an uncached archived agent without remounting the workspace (45.5s)
+[e2e] Metro stopped
+
+
+  1) [browser] › e2e/browser/plugin-archived-agent-navigation.spec.ts:20:5 › Explorer opens an uncached archived agent without remounting the workspace 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByTestId('workspace-tab-agent_a0461fb9-98bf-413b-888f-dde3e17017e8').filter({ visible: true }).first()
+    Expected: visible
+    Timeout: 30000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 30000ms[22m
+    [2m  - waiting for getByTestId('workspace-tab-agent_a0461fb9-98bf-413b-888f-dde3e17017e8').filter({ visible: true }).first()[22m
+
+
+       at ../support/helpers/archive-tab.ts:203
+
+      201 |   await expect(
+      202 |     page.getByTestId(`workspace-tab-agent_${agentId}`).filter({ visible: true }).first(),
+    > 203 |   ).toBeVisible({ timeout: 30_000 });
+          |     ^
+      204 | }
+      205 |
+      206 | export async function expectWorkspaceTabHidden(page: Page, agentId: string): Promise<void> {
+        at expectWorkspaceTabVisible (/tmp/paseo-upstream-navigation/packages/app/e2e/support/helpers/archive-tab.ts:203:5)
+        at expectArchivedAgentFocused (/tmp/paseo-upstream-navigation/packages/app/e2e/support/helpers/archive-tab.ts:232:9)
+        at /tmp/paseo-upstream-navigation/packages/app/e2e/browser/plugin-archived-agent-navigation.spec.ts:95:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../paseo-navigation-before/plugin-archived-agent-navi-5b878-ut-remounting-the-workspace-browser/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: browser-console (text/plain) ────────────────────────────────────────────────────
+    [console:info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+    [console:log] Running application "main" with appParams:
+     {rootTag: #root, hydrate: undefined} 
+    Development-level warnings: ON.
+    Performance optimizations: OFF.
+    [co...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../../paseo-navigation-before/plugin-archived-agent-navi-5b878-ut-remounting-the-workspace-browser/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../paseo-navigation-before/plugin-archived-agent-navi-5b878-ut-remounting-the-workspace-browser/error-context.md
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../paseo-navigation-before/plugin-archived-agent-navi-5b878-ut-remounting-the-workspace-browser/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../paseo-navigation-before/plugin-archived-agent-navi-5b878-ut-remounting-the-workspace-browser/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [browser] › e2e/browser/plugin-archived-agent-navigation.spec.ts:20:5 › Explorer opens an uncached archived agent without remounting the workspace 
