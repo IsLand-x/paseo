@@ -326,9 +326,7 @@ export async function sendPromptToAgent(
     await params.agentManager.setAgentMode(params.agentId, params.sessionMode);
   }
 
-  const delivery = params.source
-    ? prepareAgentMessage(params.prompt, params.source, params.messageId)
-    : { prompt: params.prompt, messageId: params.messageId };
+  const delivery = prepareAgentMessage(params.prompt, params.source, params.messageId);
   const runOptions = delivery.messageId
     ? { ...params.runOptions, clientMessageId: delivery.messageId }
     : params.runOptions;
@@ -353,9 +351,11 @@ export async function startCreatedAgentInitialPrompt(
     return currentSnapshot;
   }
 
-  const delivery = params.source
-    ? prepareAgentMessage(params.prompt, params.source, params.runOptions?.clientMessageId)
-    : { prompt: params.prompt, messageId: params.runOptions?.clientMessageId };
+  const delivery = prepareAgentMessage(
+    params.prompt,
+    params.source,
+    params.runOptions?.clientMessageId,
+  );
   const dispatchResult = await startAgentRun(
     params.agentManager,
     params.agentId,

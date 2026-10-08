@@ -1,4 +1,8 @@
-import { prepareAgentMessage, formatSystemNotificationPrompt } from "./agent-messages/index.js";
+import {
+  prepareAgentMessage,
+  formatAgentMessage,
+  formatSystemNotificationPrompt,
+} from "./agent-messages/index.js";
 import { expect, test, vi } from "vitest";
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -11589,3 +11593,48 @@ test("a rejected agent prompt never becomes a delivered notification", async () 
     rmSync(workdir, { recursive: true, force: true });
   }
 });
+
+test.each([false, true])(
+  "human envelope examples remain human after echo with correlation=%s",
+  async (correlated) => {
+    const workdir = mkdtempSync(join(tmpdir(), "human-envelope-example-"));
+    const example = formatAgentMessage({
+      id: "example",
+      source: { kind: "agent-message", agentId: "sender" },
+      text: "hello",
+    });
+    const delivery = prepareAgentMessage(example, undefined, "human-submission");
+    const codex = fakeCodexEmitting({
+      turnItems: [
+        {
+          type: "user_message",
+          text: String(delivery.prompt),
+          messageId: "provider-echo",
+          ...(correlated ? { clientMessageId: "human-submission" } : {}),
+        },
+      ],
+    });
+    const manager = new AgentManager({ clients: { codex }, logger });
+    const agent = await manager.createAgent({ provider: "codex", cwd: workdir }, undefined, {
+      workspaceId: undefined,
+    });
+    try {
+      for await (const _event of manager.streamAgent(agent.id, delivery.prompt, {
+        clientMessageId: delivery.messageId,
+      })) {
+      }
+      expect(manager.getTimeline(agent.id)).toEqual([
+        {
+          type: "user_message",
+          text: example,
+          clientMessageId: "human-submission",
+          messageId: "human-submission",
+        },
+      ]);
+      expect(manager.getAgent(agent.id)?.lastUserMessageAt).toBeInstanceOf(Date);
+    } finally {
+      await manager.closeAgent(agent.id);
+      rmSync(workdir, { recursive: true, force: true });
+    }
+  },
+);

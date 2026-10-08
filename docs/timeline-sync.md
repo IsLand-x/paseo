@@ -223,7 +223,7 @@ submission. Overlapping sends settle independently rather than collapsing to one
 message.
 
 Daemons advertising `server_info.features.canonicalSubmittedPrompts` guarantee that every accepted
-prompt carrying a client message id is recorded and streamed as a canonical `user_message` with that
+human prompt carrying a client message id is recorded and streamed as a canonical `user_message` with that
 same id. This includes daemon-handled commands that do not allocate a foreground turn; their submitted
 row is recorded before handler output. The app tracks submission transactions only for hosts with this
 capability. Older hosts keep the shipped untracked optimistic-row behavior and roll that row back on RPC
@@ -257,7 +257,7 @@ second running state. Disconnect preserves the last replicated turn until cache 
 advances it; replica removal remains the destructive close boundary. Elapsed time comes only from turn
 liveness, never from submission records or whichever timeline rows happen to be mounted.
 
-The daemon records one canonical submitted user row at acceptance. Its wire `messageId` is the
+For human prompts, the daemon records one canonical submitted user row at acceptance. Its wire `messageId` is the
 submission's `clientMessageId`, so the row is born with its final identity and remains immutable on
 the wire. A correlated provider echo records the provider's native identity internally without
 dispatching another timeline event. Rewind resolves the wire identity to that provider identity at

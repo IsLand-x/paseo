@@ -4,6 +4,7 @@ import {
   parseAgentMessage,
   formatAgentMessage,
   prepareAgentMessage,
+  projectAgentMessage,
 } from "./agent-messages/index.js";
 import { expect, it, test, vi } from "vitest";
 import pino, { type Logger } from "pino";
@@ -783,12 +784,20 @@ test("agent envelopes round-trip opaque sender IDs and XML-sensitive messages", 
   expect(parseAgentMessage(encoded.replace('version="1"', 'version="1" version="1"'))).toBeNull();
 });
 
-test("agent envelope preserves image blocks and includes all prompt text", () => {
+test("agent envelope includes rendered attachment context and preserves images", () => {
   const image = { type: "image" as const, data: "aW1hZ2U=", mimeType: "image/png" };
+  const attachment = {
+    type: "github_issue" as const,
+    mimeType: "application/github-issue" as const,
+    number: 42,
+    title: "Review context",
+    url: "https://example.com/issues/42",
+    body: "Attached context",
+  };
   const source = { kind: "agent-message" as const, agentId: "remote:sender" };
   expect(
     prepareAgentMessage(
-      [{ type: "text", text: "First" }, image, { type: "text", text: "Second" }],
+      [{ type: "text", text: "First" }, image, attachment, { type: "text", text: "Second" }],
       source,
       "message",
     ),
@@ -797,9 +806,34 @@ test("agent envelope preserves image blocks and includes all prompt text", () =>
     prompt: [
       {
         type: "text",
-        text: formatAgentMessage({ id: "message", source, text: "First\n\nSecond" }),
+        text: formatAgentMessage({
+          id: "message",
+          source,
+          text: "First\n\nGitHub Issue #42: Review context\nhttps://example.com/issues/42\n\nAttached context\n\nSecond",
+        }),
       },
       image,
     ],
+  });
+});
+
+test("a human pasting an agent envelope stays a human message through provider replay", () => {
+  const pasted = formatAgentMessage({
+    id: "example",
+    source: { kind: "agent-message", agentId: "sender" },
+    text: "hello",
+  });
+  const delivery = prepareAgentMessage(pasted, undefined, "human-submission");
+  expect(
+    projectAgentMessage({
+      type: "user_message",
+      text: String(delivery.prompt),
+      messageId: "provider-echo",
+    }),
+  ).toEqual({
+    type: "user_message",
+    text: pasted,
+    messageId: "provider-echo",
+    clientMessageId: "human-submission",
   });
 });

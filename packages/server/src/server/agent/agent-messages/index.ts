@@ -1,6 +1,11 @@
+import { renderPromptAttachmentAsText } from "../prompt-attachments.js";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { AgentPromptInput, AgentTimelineItem } from "../agent-sdk-types.js";
+import type {
+  AgentPromptContentBlock,
+  AgentPromptInput,
+  AgentTimelineItem,
+} from "../agent-sdk-types.js";
 
 const agentIdSchema = z.string().min(1);
 const sourceSchema = z.discriminatedUnion("kind", [
@@ -15,7 +20,7 @@ export type AgentPromptSource = z.infer<typeof sourceSchema>;
 
 interface AgentMessage {
   id: string;
-  source: AgentPromptSource;
+  source: AgentPromptSource | null;
   text: string;
 }
 
@@ -56,8 +61,11 @@ function unescapeXml(value: string): string | null {
 
 export function formatAgentMessage(message: AgentMessage): string {
   const { source } = message;
-  const event = source.kind === "agent-notification" ? ` event="${source.event}"` : "";
-  return `<paseo-system version="1" kind="${source.kind}" source-agent-id="${escapeXml(source.agentId)}" message-id="${escapeXml(message.id)}"${event}>\n${escapeXml(message.text)}\n</paseo-system>`;
+  const attributes = source
+    ? `kind="${source.kind}" source-agent-id="${escapeXml(source.agentId)}"`
+    : 'kind="user-message"';
+  const event = source?.kind === "agent-notification" ? ` event="${source.event}"` : "";
+  return `<paseo-system version="1" ${attributes} message-id="${escapeXml(message.id)}"${event}>\n${escapeXml(message.text)}\n</paseo-system>`;
 }
 
 export function parseAgentMessage(text: string): AgentMessage | null {
@@ -72,36 +80,60 @@ export function parseAgentMessage(text: string): AgentMessage | null {
     attributes.set(match[1], value);
   }
   if (attributes.get("version") !== "1") return null;
+  const id = attributes.get("message-id");
+  const body = unescapeXml(envelope[2]);
+  if (!id || body === null) return null;
+  if (attributes.get("kind") === "user-message") {
+    if (attributes.has("source-agent-id") || attributes.has("event")) return null;
+    return { id, source: null, text: body };
+  }
   const source = sourceSchema.safeParse({
     kind: attributes.get("kind"),
     agentId: attributes.get("source-agent-id"),
     event: attributes.get("event"),
   });
-  const id = attributes.get("message-id");
-  const body = unescapeXml(envelope[2]);
-  if (!source.success || !id || body === null) return null;
+  if (!source.success) return null;
   return { id, source: source.data, text: body };
+}
+
+function renderMessageText(block: AgentPromptContentBlock): string[] {
+  if (block.type === "image") return [];
+  if (block.type === "text") return [block.text];
+  return [renderPromptAttachmentAsText(block)];
 }
 
 export function prepareAgentMessage(
   prompt: AgentPromptInput,
-  source: AgentPromptSource,
-  id: string = randomUUID(),
-): { prompt: AgentPromptInput; messageId: string } {
-  const text =
-    typeof prompt === "string"
-      ? prompt
-      : prompt
-          .filter((block) => block.type === "text")
-          .map((block) => block.text)
-          .join("\n\n");
-  const envelope = formatAgentMessage({ id, source, text });
+  source?: AgentPromptSource,
+  id?: string,
+): { prompt: AgentPromptInput; messageId?: string } {
+  if (!source) {
+    const submittedText =
+      typeof prompt === "string"
+        ? prompt
+        : prompt
+            .flatMap((block) =>
+              block.type === "text" && !("mimeType" in block) ? [block.text] : [],
+            )
+            .join("\n")
+            .trim();
+    // Quote reserved envelopes only when they arrived through the human send path.
+    // This provenance must survive provider history, not only the accepted local row.
+    if (!parseAgentMessage(submittedText) && !isSystemInjectedEnvelope(submittedText)) {
+      return { prompt, messageId: id };
+    }
+  }
+  const messageId = id ?? randomUUID();
+  const text = typeof prompt === "string" ? prompt : prompt.flatMap(renderMessageText).join("\n\n");
+  // Render textual attachments before wrapping, so provider replay still contains one
+  // complete envelope instead of an envelope followed by provider-rendered context.
+  const envelope = formatAgentMessage({ id: messageId, source: source ?? null, text });
   return {
-    messageId: id,
+    messageId,
     prompt:
       typeof prompt === "string"
         ? envelope
-        : [{ type: "text", text: envelope }, ...prompt.filter((block) => block.type !== "text")],
+        : [{ type: "text", text: envelope }, ...prompt.filter((block) => block.type === "image")],
   };
 }
 
@@ -122,6 +154,9 @@ export function projectAgentMessage(item: AgentTimelineItem): AgentTimelineItem 
     return isSystemInjectedEnvelope(item.text) ? null : item;
   }
   const { source } = message;
+  if (!source) {
+    return { ...item, text: message.text, clientMessageId: message.id };
+  }
   const label =
     source.kind === "agent-message" ? "Message from agent" : notificationLabels[source.event];
   return {

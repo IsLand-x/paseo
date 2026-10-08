@@ -4698,16 +4698,26 @@ export class AgentManager {
     clientMessageId: string,
     options?: { messageId?: string; providerMessageId?: string; turnId?: string },
   ): void {
-    if (this.timelineStore.getSubmittedUserMessage(agent.id, clientMessageId)) {
-      return;
-    }
     const item = projectAgentMessage({
       type: "user_message",
       text: submittedPromptText(prompt),
       clientMessageId,
       ...(options?.messageId ? { messageId: options.messageId } : {}),
     });
-    if (!item) return;
+    if (item) this.recordSubmittedPromptItem(agent, item, options);
+  }
+
+  private recordSubmittedPromptItem(
+    agent: ActiveManagedAgent,
+    item: AgentTimelineItem,
+    options?: { providerMessageId?: string; turnId?: string },
+  ): void {
+    if (
+      item.type === "user_message" &&
+      item.clientMessageId &&
+      this.timelineStore.getSubmittedUserMessage(agent.id, item.clientMessageId)
+    )
+      return;
     this.touchUpdatedAt(agent);
     if (item.type === "user_message") agent.lastUserMessageAt = new Date();
     this.recordAndDispatchTimelineItem(agent.id, item, agent.provider, options?.turnId, options);
@@ -4722,11 +4732,14 @@ export class AgentManager {
     if (!clientMessageId) return null;
     let existing = this.timelineStore.getSubmittedUserMessage(agent.id, clientMessageId);
     if (!existing) {
-      this.recordSubmittedPrompt(agent, item.text, clientMessageId, {
-        messageId: clientMessageId,
-        ...(messageId ? { providerMessageId: messageId } : {}),
-        ...(turnId ? { turnId } : {}),
-      });
+      this.recordSubmittedPromptItem(
+        agent,
+        { ...item, messageId: clientMessageId },
+        {
+          ...(messageId ? { providerMessageId: messageId } : {}),
+          ...(turnId ? { turnId } : {}),
+        },
+      );
       existing = this.timelineStore.getSubmittedUserMessage(agent.id, clientMessageId);
     }
     if (!existing || existing.item.type !== "user_message") return null;
